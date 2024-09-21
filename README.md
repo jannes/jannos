@@ -1,3 +1,10 @@
-# Qemu virt riscv OS from scratch in Rust
+# jannos: jannes' learning project for OS dev
 
+Building a kernel for Qemu's riscv virtual machine from scratch in Rust.
 
+- uses OpenSBI, a sort of BIOS that Qemu defaults to, to simplify some peripheral interactions
+- does not use any dependencies and as little assembly as possible
+
+## References
+- [https://osblog.stephenmarz.com/](https://osblog.stephenmarz.com/)
+- TODO: add more
