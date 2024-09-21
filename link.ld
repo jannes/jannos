@@ -1,6 +1,6 @@
 MEMORY { 
-    /* qemu -kernel jumps here */
-    ram  (wxa) : ORIGIN = 0x80000000, LENGTH = 128M
+    /* qemu uses OPENSBI which jumps to this address */
+    ram  (wxa) : ORIGIN = 0x80200000, LENGTH = 128M
 }
 
 

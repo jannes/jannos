@@ -4,7 +4,7 @@ GDB = $(TOOLCHAIN)-gdb
 
 KERNEL_ELF = target/riscv64gc-unknown-none-elf/release/jannos
 
-QEMU_ARGS = -machine virt -serial stdio -display none -bios none -cpu rv64
+QEMU_ARGS = -machine virt -serial stdio -display none -cpu rv64
 
 
 .PHONY: build
