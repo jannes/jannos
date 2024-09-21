@@ -31,7 +31,7 @@ _start:
         // Set the stack pointer.
         la sp, _STACK_PTR
         // Jump to Rust code.
-        jal kmain
+        j kmain
 
 // Infinitely wait for events (aka "park the core").
 .L_parking_loop:
