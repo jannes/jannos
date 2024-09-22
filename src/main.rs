@@ -28,12 +28,15 @@ pub extern "C" fn kmain() -> ! {
     let start_addr = _park_me as u64;
     for i in 0..4 {
         if i != hart_id {
+            sbi_hart_start(i, start_addr, 0);
             // busy loop to let each hart debug print its id
             for _j in 0..10000000 {
                 black_box(());
             }
-            sbi_hart_start(i, start_addr, 0);
         }
+    }
+    unsafe {
+        _park_me();
     }
     loop {}
 }
