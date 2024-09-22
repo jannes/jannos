@@ -5,6 +5,12 @@ Building a kernel for Qemu's riscv virtual machine from scratch in Rust.
 - uses OpenSBI, a sort of BIOS that Qemu defaults to, to simplify some peripheral interactions
 - does not use any dependencies and as little assembly as possible
 
+## Notes
+
+OpenSBI selects a hart as boot core and jumps to kernel.
+Kernel has to start up other harts by itself.
+TODO: kmain should call into SBI to start other harts in parking loop
+
 ## References
 - [https://osblog.stephenmarz.com/](https://osblog.stephenmarz.com/)
 - TODO: add more

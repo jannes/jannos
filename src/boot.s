@@ -4,27 +4,31 @@
 .section .text.boot
 
 _start:
-        // Only proceed on the boot core (0). Park it otherwise.
-        // csrr a0, mhartid
-        // la t0, 0
-        // ld a1, 0(t0)
-        // bne a0, a1, .L_parking_loop
-        // If execution reaches here, it is the boot core.
-
-.hello_asm:
+// OpenSBI passes hart id in a0 register
+        csrw sscratch, a0
+// debug print hart id
+_hello_asm:
         li a1, 0x10000000
-        addi a0, x0, 0x68
-        sb a0, (a1) # 'h'
-        addi a0, x0, 0x65
-        sb a0, (a1) # 'e'
-        addi a0, x0, 0x6C
-        sb a0, (a1) # 'l'
-        addi a0, x0, 0x6C
-        sb a0, (a1) # 'l'
-        addi a0, x0, 0x6F
-        sb a0, (a1) # 'o'
+        addi a0, x0, 0x49
+        sb a0, (a1) # 'I'
+        addi a0, x0, 0x20
+        sb a0, (a1) # ' '
+        addi a0, x0, 0x61
+        sb a0, (a1) # 'a'
+        addi a0, x0, 0x6D
+        sb a0, (a1) # 'm'
+        addi a0, x0, 0x20
+        sb a0, (a1) # ' '
+        csrr a0, sscratch
+        addi a0, a0, 48
+        sb a0, (a1) # 'hartid'
         addi a0, x0, 0x0A
         sb a0, (a1) # '\n'
+        li a1, 0
+        bne a0, a1, .L_parked
+
+// TODO: start other harts
+         at parking loop
 
 // Prepare the jump to Rust code.
 .L_prepare_rust:
