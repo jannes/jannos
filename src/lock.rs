@@ -25,6 +25,10 @@ impl<T> SpinLock<T> {
         }
     }
 
+    pub fn is_locked(&self) -> bool {
+        self.locked.load(Ordering::Relaxed)
+    }
+
     pub fn lock(&self) -> Guard<T> {
         println!("lock val: {}", self.locked.load(Ordering::Relaxed));
         while self.locked.swap(true, Ordering::Acquire) {

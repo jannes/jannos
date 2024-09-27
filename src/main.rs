@@ -40,23 +40,36 @@ pub extern "C" fn kmain(fdt_addr: usize) -> ! {
     let hart_id = hart_id();
     println!("I am boot core ({}), fdt_addr: {:#x}", hart_id, fdt_addr);
 
+    println!("kmem addr: {:p}, locked: {}", &KMEM, KMEM.is_locked());
+
+    // TODO: investigate why Fdt parsing changes KMEM value
+    //       and thus causes KMEM to be locked
+
     // determine amount of cores and memory space through devicetree
-    let fdt = match unsafe { Fdt::from_ptr(fdt_addr as *const u8) } {
-        Ok(fdt) => fdt,
-        Err(err) => panic!("failed to parse fdt, err: {}", err),
+    let (num_cpu, mem_end) = {
+        let fdt = match unsafe { Fdt::from_ptr(fdt_addr as *const u8) } {
+            Ok(fdt) => fdt,
+            Err(err) => panic!("failed to parse fdt, err: {}", err),
+        };
+        let num_cpu = fdt.cpus().count();
+        println!("Total cores: {}", num_cpu);
+
+        assert_eq!(1, fdt.memory().regions().count());
+        let mem_region = fdt.memory().regions().next().unwrap();
+        let mem_start = mem_region.starting_address as usize;
+        let mem_end = mem_start + mem_region.size.unwrap();
+        println!("memory start: {:#x}, end: {:#x}", mem_start, mem_end);
+        (num_cpu, mem_end)
     };
 
-    let num_cpu = fdt.cpus().count();
-    println!("Total cores: {}", num_cpu);
-
-    assert_eq!(1, fdt.memory().regions().count());
-    let mem_region = fdt.memory().regions().next().unwrap();
-    let mem_start = mem_region.starting_address as usize;
-    let mem_end = mem_start + mem_region.size.unwrap();
-    println!("memory start: {:#x}, end: {:#x}", mem_start, mem_end);
+    println!("kmem addr: {:p}, locked: {}", &KMEM, KMEM.is_locked());
 
     // addresses of the linker defined symbols are the actual values we need
     let heap_start = unsafe { ((&_HEAP_START) as *const usize) as usize };
+
+    // let num_cpu = 1;
+    // let mem_end = unsafe { ((&_MEM_END) as *const usize) as usize };
+
     println!("init kmem");
     let mut kmem = KMEM.lock();
     kmem.init(heap_start, mem_end);
