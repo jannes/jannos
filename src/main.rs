@@ -38,7 +38,9 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 #[no_mangle]
 pub extern "C" fn kmain(fdt_addr: usize) -> ! {
     let hart_id = hart_id();
-    println!("I am boot core ({}), fdt_addr: {}", hart_id, fdt_addr);
+    println!("I am boot core ({}), fdt_addr: {:#x}", hart_id, fdt_addr);
+
+    // determine amount of cores and memory space through devicetree
     let fdt = match unsafe { Fdt::from_ptr(fdt_addr as *const u8) } {
         Ok(fdt) => fdt,
         Err(err) => panic!("failed to parse fdt, err: {}", err),
@@ -47,26 +49,31 @@ pub extern "C" fn kmain(fdt_addr: usize) -> ! {
     let num_cpu = fdt.cpus().count();
     println!("Total cores: {}", num_cpu);
 
+    assert_eq!(1, fdt.memory().regions().count());
+    let mem_region = fdt.memory().regions().next().unwrap();
+    let mem_start = mem_region.starting_address as usize;
+    let mem_end = mem_start + mem_region.size.unwrap();
+    println!("memory start: {:#x}, end: {:#x}", mem_start, mem_end);
+
     // addresses of the linker defined symbols are the actual values we need
     let heap_start = unsafe { ((&_HEAP_START) as *const usize) as usize };
-    let mem_end = unsafe { ((&_MEM_END) as *const usize) as usize };
     println!("init kmem");
     let mut kmem = KMEM.lock();
     kmem.init(heap_start, mem_end);
 
-    start_other_cores(hart_id);
+    start_other_cores(hart_id, num_cpu);
     panic!("kmain done");
 }
 
 // TODO:
 // - actually set up a stack for other cores
 // - jump directly into rust after stack is set up
-fn start_other_cores(boot_core_id: u64) {
+fn start_other_cores(boot_core_id: usize, num_cpu: usize) {
     println!("starting non-boot cores");
     let start_addr = _park_me as usize;
-    for i in 0..4 {
+    for i in 0..num_cpu {
         if i != boot_core_id {
-            sbi_hart_start(i, start_addr as u64, 0);
+            sbi_hart_start(i, start_addr, 0);
             // busy loop to let each hart debug print its id
             #[cfg(debug_assertions)]
             let iterations = 10000;

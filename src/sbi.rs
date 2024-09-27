@@ -38,7 +38,7 @@ pub fn sbi_dbg_write(data: &[u8]) -> SbiRet {
     sbi_ret
 }
 
-pub fn sbi_hart_start(hart_id: u64, start_addr: u64, opaque: u64) -> SbiRet {
+pub fn sbi_hart_start(hart_id: usize, start_addr: usize, opaque: usize) -> SbiRet {
     let mut sbi_ret = SbiRet { error: 0, value: 0 };
 
     unsafe {
