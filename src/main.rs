@@ -7,6 +7,7 @@ use core::{
 };
 
 use arch::hart_id;
+use fdt::Fdt;
 use mem::KMEM;
 use sbi::sbi_hart_start;
 
@@ -35,9 +36,16 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 }
 
 #[no_mangle]
-pub extern "C" fn kmain() -> ! {
+pub extern "C" fn kmain(fdt_addr: usize) -> ! {
     let hart_id = hart_id();
-    println!("I am boot core ({})", hart_id);
+    println!("I am boot core ({}), fdt_addr: {}", hart_id, fdt_addr);
+    let fdt = match unsafe { Fdt::from_ptr(fdt_addr as *const u8) } {
+        Ok(fdt) => fdt,
+        Err(err) => panic!("failed to parse fdt, err: {}", err),
+    };
+
+    let num_cpu = fdt.cpus().count();
+    println!("Total cores: {}", num_cpu);
 
     // addresses of the linker defined symbols are the actual values we need
     let heap_start = unsafe { ((&_HEAP_START) as *const usize) as usize };

@@ -11,12 +11,9 @@ _start:
 // OpenSBI passes hart id in a0 register
 // Keep it saved in tp register for each core
         mv tp, a0
-
-.option push
-.option norelax
-        la gp, _global_pointer
-.option pop
-
+// Devicetree pointer is passed in a1
+// Save it in order to pass to kmain later
+        mv t0, a1
 // Initialize DRAM.
         la a0, _BSS_START
         la a1, _BSS_END_EXCL
@@ -31,6 +28,7 @@ _start:
 .L_prepare_rust:
         // Set the stack pointer.
         la sp, _STACK_BOTTOM
+        mv a0, t0
         // Jump to Rust code.
         j kmain
 
