@@ -42,7 +42,8 @@ pub extern "C" fn kmain() -> ! {
     let heap_start = unsafe { ((&_HEAP_START) as *const usize) as usize };
     let mem_end = unsafe { ((&_MEM_END) as *const usize) as usize };
     println!("init kmem");
-    KMEM.lock().init(heap_start, mem_end);
+    let mut kmem = KMEM.lock();
+    kmem.init(heap_start, mem_end);
     panic!();
 }
 

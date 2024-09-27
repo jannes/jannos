@@ -21,8 +21,10 @@ SECTIONS {
         *(.rodata)
     } > ram
 
-    .bss : {
+    .bss : ALIGN(16) {
+        _BSS_START = .;
         *(.bss)
+        _BSS_END_EXCL = .;
     } > ram
 
     . = ALIGN(8);

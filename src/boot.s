@@ -1,13 +1,26 @@
 .global _start
 .global _park_me
 .extern _STACK_BOTTOM
+.extern _BSS_START
+.extern _BSS_END_EXCL
 
 .section .text.boot
 
+// only the boot core starts here
 _start:
 // OpenSBI passes hart id in a0 register
 // Keep it saved in tp register for each core
         mv tp, a0
+
+// Initialize DRAM.
+        la a0, _BSS_START
+        la a1, _BSS_END_EXCL
+
+.L_bss_init_loop:
+        beq a0, a1, .L_prepare_rust
+        sd zero, (a0)
+        addi a0, a0, 8
+        j .L_bss_init_loop
 
 // Prepare the jump to Rust code.
 .L_prepare_rust:

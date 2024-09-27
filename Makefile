@@ -12,7 +12,9 @@ else
 	CARGO_FLAGS = --release
 endif
 
-QEMU_ARGS = -machine virt -serial stdio -display none -cpu rv64 -smp 4
+NUM_CPU ?= 4
+
+QEMU_ARGS = -machine virt -serial stdio -display none -cpu rv64 -smp $(NUM_CPU)
 
 
 .PHONY: build
@@ -29,7 +31,7 @@ qemu-gdb: build
 
 .PHONY: gdb
 gdb:
-	$(GDB) -ex "file $(KERNEL_ELF)"
+	$(GDB) $(KERNEL_ELF)
 
 .PHONY: text
 text:
