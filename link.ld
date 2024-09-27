@@ -29,5 +29,9 @@ SECTIONS {
     /* stack size */
     . = . + 4096;
     /* symbol for use in entry code */
-    _STACK_PTR = .;
+    _STACK_BOTTOM = .;
+
+    /* define symbols for use in kernel memory management code */
+    _HEAP_START = _STACK_BOTTOM;
+    _MEM_END = ORIGIN(ram) + LENGTH(ram);
 }

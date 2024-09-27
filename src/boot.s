@@ -1,6 +1,6 @@
 .global _start
 .global _park_me
-.extern _STACK_PTR
+.extern _STACK_BOTTOM
 
 .section .text.boot
 
@@ -12,7 +12,7 @@ _start:
 // Prepare the jump to Rust code.
 .L_prepare_rust:
         // Set the stack pointer.
-        la sp, _STACK_PTR
+        la sp, _STACK_BOTTOM
         // Jump to Rust code.
         j kmain
 
