@@ -14,7 +14,7 @@ endif
 
 NUM_CPU ?= 4
 
-QEMU_ARGS = -machine virt -serial stdio -display none -cpu rv64 -smp $(NUM_CPU)
+QEMU_ARGS = -machine virt -serial stdio -display none -m 256M -cpu rv64 -smp $(NUM_CPU)
 
 
 .PHONY: build

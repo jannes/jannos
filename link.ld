@@ -10,23 +10,33 @@ SECTIONS {
     } > ram
 
     .text : {
-        *(.text)
+        *(.text .text.*)
     } > ram
 
     .data : {
-        *(.data)
+        . = ALIGN(16);
+        *(.sdata .sdata.*) 
+        . = ALIGN(16);
+        *(.data .data.*)
     } > ram
 
     .rodata : {
-        *(.rodata)
+        . = ALIGN(16);
+        *(.srodata .srodata.*)
+        . = ALIGN(16);
+        *(.rodata .rodata.*)
     } > ram
 
-    .bss : ALIGN(16) {
+    .bss : {
+        . = ALIGN(16);
         _BSS_START = .;
-        *(.bss)
+        *(.sbss .sbss.*)
+        . = ALIGN(16);
+        *(.bss .bss.*)
         _BSS_END_EXCL = .;
     } > ram
 
+    /* define stack for boot core */
     . = ALIGN(8);
     /* stack size */
     . = . + 4096;

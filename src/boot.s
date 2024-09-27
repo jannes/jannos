@@ -12,6 +12,11 @@ _start:
 // Keep it saved in tp register for each core
         mv tp, a0
 
+.option push
+.option norelax
+        la gp, _global_pointer
+.option pop
+
 // Initialize DRAM.
         la a0, _BSS_START
         la a1, _BSS_END_EXCL
