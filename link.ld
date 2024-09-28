@@ -38,8 +38,8 @@ SECTIONS {
 
     /* define stack for boot core */
     . = ALIGN(8);
-    /* stack size */
-    . = . + 4096;
+    /* stack size -- 16 pages for now */
+    . = . + 16 * 4096;
     /* symbol for use in entry code */
     _STACK_BOTTOM = .;
 

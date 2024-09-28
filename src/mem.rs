@@ -30,10 +30,12 @@ impl PhysMem {
 
     pub fn init(&mut self, start: usize, exclusive_end: usize) {
         println!("PhysMem.init");
-        println!("start address {:#x}", start);
-        println!("end address {:#x}", exclusive_end);
+        println!("start address {:#x} ({})", start, start);
+        println!("end address {:#x} ({})", exclusive_end, exclusive_end);
         let mut page_start_addr = page_round_up(start);
         let exclusive_end = page_round_down(exclusive_end);
+        // println!("aligned start address {:#x} ({})", page_start_addr, page_start_addr);
+        // println!("aligned end address {:#x} ({})", exclusive_end, exclusive_end);
 
         // current points to tail of the freelist
         let mut current = &mut self.freelist;

@@ -4,6 +4,8 @@
 use core::{
     arch::{asm, global_asm},
     hint::black_box,
+    ptr::slice_from_raw_parts,
+    slice,
 };
 
 use arch::hart_id;
@@ -41,27 +43,8 @@ pub extern "C" fn kmain(fdt_addr: usize) -> ! {
     println!("I am boot core ({}), fdt_addr: {:#x}", hart_id, fdt_addr);
 
     println!("kmem addr: {:p}, locked: {}", &KMEM, KMEM.is_locked());
-
-    // TODO: investigate why Fdt parsing changes KMEM value
-    //       and thus causes KMEM to be locked
-
     // determine amount of cores and memory space through devicetree
-    let (num_cpu, mem_end) = {
-        let fdt = match unsafe { Fdt::from_ptr(fdt_addr as *const u8) } {
-            Ok(fdt) => fdt,
-            Err(err) => panic!("failed to parse fdt, err: {}", err),
-        };
-        let num_cpu = fdt.cpus().count();
-        println!("Total cores: {}", num_cpu);
-
-        assert_eq!(1, fdt.memory().regions().count());
-        let mem_region = fdt.memory().regions().next().unwrap();
-        let mem_start = mem_region.starting_address as usize;
-        let mem_end = mem_start + mem_region.size.unwrap();
-        println!("memory start: {:#x}, end: {:#x}", mem_start, mem_end);
-        (num_cpu, mem_end)
-    };
-
+    let (num_cpu, mem_end) = hw_info(fdt_addr);
     println!("kmem addr: {:p}, locked: {}", &KMEM, KMEM.is_locked());
 
     // addresses of the linker defined symbols are the actual values we need
@@ -97,4 +80,51 @@ fn start_other_cores(boot_core_id: usize, num_cpu: usize) {
             }
         }
     }
+}
+
+/// Obtain (num_cpus, memory_end) by parsing FDT at given address
+/// IMPORTANT: the FDT parsing uses a lot of stack space,
+///   which caused stack to overflow when its size was just a single page
+fn hw_info(fdt_addr: usize) -> (usize, usize) {
+    let fdt_header_magic_ptr = fdt_addr as *const u8;
+    let fdt_header_magic = u32::from_be_bytes(
+        unsafe { slice::from_raw_parts(fdt_header_magic_ptr, 4) }
+            .try_into()
+            .unwrap(),
+    );
+    let fdt_header_totalsize_ptr = unsafe { fdt_header_magic_ptr.offset(4) };
+    let fdt_header_totalsize = u32::from_be_bytes(
+        unsafe { slice::from_raw_parts(fdt_header_totalsize_ptr, 4) }
+            .try_into()
+            .unwrap(),
+    );
+
+    println!(
+        "fdt header magic at {:p}: {:#x}",
+        fdt_header_magic_ptr, fdt_header_magic
+    );
+    println!(
+        "fdt header totalsize at {:p}: {}",
+        fdt_header_totalsize_ptr, fdt_header_totalsize
+    );
+    let fdt_slice =
+        unsafe { core::slice::from_raw_parts(fdt_header_magic_ptr, fdt_header_totalsize as usize) };
+
+    let (num_cpu, mem_end) = {
+        let fdt = match Fdt::new(fdt_slice) {
+            // let fdt = match unsafe { Fdt::from_ptr(fdt_addr as *const u8) } {
+            Ok(fdt) => fdt,
+            Err(err) => panic!("failed to parse fdt, err: {}", err),
+        };
+        let num_cpu = fdt.cpus().count();
+        println!("Total cores: {}", num_cpu);
+
+        assert_eq!(1, fdt.memory().regions().count());
+        let mem_region = fdt.memory().regions().next().unwrap();
+        let mem_start = mem_region.starting_address as usize;
+        let mem_end = mem_start + mem_region.size.unwrap();
+        println!("memory start: {:#x}, end: {:#x}", mem_start, mem_end);
+        (num_cpu, mem_end)
+    };
+    (num_cpu, mem_end)
 }
