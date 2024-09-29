@@ -4,13 +4,12 @@
 use core::{
     arch::{asm, global_asm},
     hint::black_box,
-    ptr::slice_from_raw_parts,
     slice,
 };
 
 use arch::hart_id;
 use fdt::Fdt;
-use mem::KMEM;
+use mem::{align_16, KMEM, PAGE_SIZE};
 use sbi::sbi_hart_start;
 
 mod arch;
@@ -21,8 +20,10 @@ mod sbi;
 
 global_asm!(include_str!("boot.s"));
 
+pub const STACK_SIZE: usize = 16 * PAGE_SIZE;
+
 extern "C" {
-    fn _park_me();
+    fn _start_non_boot_core();
     static _HEAP_START: usize;
     static _MEM_END: usize;
 }
@@ -37,39 +38,56 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     }
 }
 
+// the first Rust code executed by boot core on temporary stack
+// here we just get essential hardware info, like amount of cores and memory
 #[no_mangle]
-pub extern "C" fn kmain(fdt_addr: usize) -> ! {
+pub extern "C" fn kinit(fdt_addr: usize) -> ! {
     let hart_id = hart_id();
     println!("I am boot core ({}), fdt_addr: {:#x}", hart_id, fdt_addr);
 
-    println!("kmem addr: {:p}, locked: {}", &KMEM, KMEM.is_locked());
     // determine amount of cores and memory space through devicetree
+    println!("kmem addr: {:p}, locked: {}", &KMEM, KMEM.is_locked());
     let (num_cpu, mem_end) = hw_info(fdt_addr);
     println!("kmem addr: {:p}, locked: {}", &KMEM, KMEM.is_locked());
 
-    // addresses of the linker defined symbols are the actual values we need
+    // heap starts right after bss section, symbol exported by linker script
+    // symbol address is the actual value that we set it to (confusing!)
     let heap_start = unsafe { ((&_HEAP_START) as *const usize) as usize };
+    // heap should end right before kernel stacks which are at top of memory space
+    let heap_end_exclusive = align_16(mem_end) - (num_cpu * STACK_SIZE);
+    println!(
+        "heap start: {:#x}, heap end: {:#x}",
+        heap_start, heap_end_exclusive
+    );
 
-    // let num_cpu = 1;
-    // let mem_end = unsafe { ((&_MEM_END) as *const usize) as usize };
-
-    println!("init kmem");
+    println!("init physical memory heap");
     let mut kmem = KMEM.lock();
-    kmem.init(heap_start, mem_end);
+    kmem.init(heap_start, heap_end_exclusive);
 
-    start_other_cores(hart_id, num_cpu);
-    panic!("kmain done");
+    start_other_cores(hart_id, num_cpu, mem_end);
+    panic!("kinit done, TODO: switch boot core stack and continue in kmain");
 }
 
-// TODO:
-// - actually set up a stack for other cores
-// - jump directly into rust after stack is set up
-fn start_other_cores(boot_core_id: usize, num_cpu: usize) {
+// Non-boot cores' entry into Rust
+#[no_mangle]
+pub extern "C" fn start_non_boot_core() -> ! {
+    println!("I am non-boot core ({}), going to sleep", hart_id());
+    loop {
+        unsafe {
+            asm!("wfi");
+        }
+    }
+}
+
+// Starts non-boot cores, setting up their stacks in Assembly
+// and then calling back into Rust just sleeping for now
+fn start_other_cores(boot_core_id: usize, num_cpu: usize, mem_end: usize) {
     println!("starting non-boot cores");
-    let start_addr = _park_me as usize;
+    let start_addr = _start_non_boot_core as usize;
     for i in 0..num_cpu {
         if i != boot_core_id {
-            sbi_hart_start(i, start_addr, 0);
+            let sp = align_16(mem_end) - (i * STACK_SIZE);
+            sbi_hart_start(i, start_addr, sp);
             // busy loop to let each hart debug print its id
             #[cfg(debug_assertions)]
             let iterations = 10000;

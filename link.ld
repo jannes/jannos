@@ -1,6 +1,8 @@
 MEMORY { 
-    /* qemu uses OPENSBI which jumps to this address */
-    ram  (wxa) : ORIGIN = 0x80200000, LENGTH = 128M
+    /* qemu uses OPENSBI which jumps to address specified as ORIGIN */
+    /* LENGTH is a required parameter here, but actually it is dynamic
+       so just set it to a dummy value that is large enough to fit static sections */
+    ram  (wxa) : ORIGIN = 0x80200000, LENGTH = 128M 
 }
 
 
@@ -36,14 +38,22 @@ SECTIONS {
         _BSS_END_EXCL = .;
     } > ram
 
-    /* define stack for boot core */
-    . = ALIGN(8);
-    /* stack size -- 16 pages for now */
-    . = . + 16 * 4096;
-    /* symbol for use in entry code */
-    _STACK_BOTTOM = .;
+    /* Export heap start to use in memory initialization code */
+    _HEAP_START = .;
 
-    /* define symbols for use in kernel memory management code */
-    _HEAP_START = _STACK_BOTTOM;
-    _MEM_END = ORIGIN(ram) + LENGTH(ram);
+    /* Define a region used as temporary stack for boot core */
+    /* SP needs to be 16 byte aligned */
+    . = ALIGN(16);
+    /* Use large enough stack size to not overflow in init code
+       16 pages should suffice */
+    . = . + 16 * 4096;
+    /* Symbol for use in entry code */
+    _TMP_BOOT_STACK_BOTTOM = .;
+
+/* In initialization code, after determining the amount of memory
+   stacks for each boot core should be set up at the very top of
+   the memory space. With mem_end being the exclusive end address,
+   each core's SP is determined by:
+
+   mem_end - (hart_id * STACK_SIZE) */
 }

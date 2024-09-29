@@ -18,6 +18,11 @@ pub fn page_round_down(address: usize) -> usize {
     address & !(PAGE_SIZE - 1)
 }
 
+// Rounds down to next 16 byte alignment
+pub fn align_16(address: usize) -> usize {
+    (address + 15) & !15
+}
+
 pub struct PhysMem {
     freelist: Option<*mut FreePage>,
     amount_pages: usize,

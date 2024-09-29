@@ -9,7 +9,6 @@ Building a kernel for Qemu's riscv virtual machine from scratch in Rust.
 
 OpenSBI selects a hart as boot core and jumps to kernel.
 Kernel has to start up other harts by itself.
-TODO: kmain should call into SBI to start other harts in parking loop
 
 ## References
 - [https://osblog.stephenmarz.com/](https://osblog.stephenmarz.com/)

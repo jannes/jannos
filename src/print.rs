@@ -1,9 +1,17 @@
 use core::fmt::{self, Write};
 
-use crate::sbi::{self};
+use crate::{
+    lock::SpinLock,
+    sbi::{self},
+};
+
+// The following deadlocks right away on start up
+// static CONSOLE: SpinLock<()> = SpinLock::new(());
+// TODO: do proper locking of SBIOut
 
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
+    // let _console = CONSOLE.lock();
     sbi::sbi_out().write_fmt(args).unwrap();
 }
 
