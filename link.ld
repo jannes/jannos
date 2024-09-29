@@ -38,9 +38,6 @@ SECTIONS {
         _BSS_END_EXCL = .;
     } > ram
 
-    /* Export heap start to use in memory initialization code */
-    _HEAP_START = .;
-
     /* Define a region used as temporary stack for boot core */
     /* SP needs to be 16 byte aligned */
     . = ALIGN(16);
@@ -49,6 +46,13 @@ SECTIONS {
     . = . + 16 * 4096;
     /* Symbol for use in entry code */
     _TMP_BOOT_STACK_BOTTOM = .;
+
+    /* Export heap start to use in memory initialization code */
+    /* TODO: heap should actually start right after bss section,
+    * so heap setup should occur after boot core switches away from 
+    * temporary stack */
+    _HEAP_START = .;
+
 
 /* In initialization code, after determining the amount of memory
    stacks for each boot core should be set up at the very top of
