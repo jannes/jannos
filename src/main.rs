@@ -68,6 +68,12 @@ pub extern "C" fn kinit(fdt_addr: usize) -> ! {
     panic!("kinit done, TODO: switch boot core stack and continue in kmain");
 }
 
+// second call into Rust for boot core, now on its normal stack
+#[no_mangle]
+pub extern "C" fn kmain() -> ! {
+    unimplemented!()
+}
+
 // Non-boot cores' entry into Rust
 #[no_mangle]
 pub extern "C" fn start_non_boot_core() -> ! {

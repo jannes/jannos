@@ -1,11 +1,8 @@
 use core::fmt::{self, Write};
 
-use crate::{
-    lock::SpinLock,
-    sbi::{self},
-};
+use crate::sbi::{self};
 
-// The following deadlocks right away on start up
+// The following deadlocks right away on start up, why?
 // static CONSOLE: SpinLock<()> = SpinLock::new(());
 // TODO: do proper locking of SBIOut
 
