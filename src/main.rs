@@ -13,6 +13,7 @@ use mem::{align_16, KMEM, PAGE_SIZE};
 use sbi::sbi_hart_start;
 
 mod arch;
+mod cpu;
 mod lock;
 mod mem;
 mod print;
