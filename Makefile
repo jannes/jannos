@@ -2,7 +2,7 @@ TOOLCHAIN = riscv64-unknown-elf
 OBJDUMP = $(TOOLCHAIN)-objdump
 GDB = $(TOOLCHAIN)-gdb
 
-BUILD ?= debug
+BUILD ?= release
 
 ifeq ($(BUILD), debug)
 	KERNEL_ELF = target/riscv64gc-unknown-none-elf/debug/jannos
