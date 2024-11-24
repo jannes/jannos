@@ -5,6 +5,14 @@ Building a kernel for Qemu's riscv virtual machine from scratch in Rust.
 - uses OpenSBI, a sort of BIOS that Qemu defaults to, to simplify some peripheral interactions
 - I am trying to use as few dependencies and as little assembly as possible
 
+## Prerequisites
+
+- `rustup target add riscv64gc-unknown-none-elf`
+- `riscv64-unknown-elf` toolchain (providing qemu, gdb and binutils)
+
+To compile the latter from source see 
+[riscv-gnu-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain)
+
 ## Notes
 
 OpenSBI selects a hart as boot core and jumps to kernel.
