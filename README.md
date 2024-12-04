@@ -9,11 +9,18 @@ Building a kernel for Qemu's riscv virtual machine from scratch in Rust.
 
 - [Rust](https://www.rust-lang.org/tools/install)
 - riscv64 target: `rustup target add riscv64gc-unknown-none-elf`
-- `riscv64-unknown-elf` toolchain (providing gdb and binutils)
 - `qemu-system-riscv64` (e.g `sudo dnf install qemu-system-riscv` on Fedora)
+- `riscv64-unknown-elf` toolchain (providing gdb and binutils)
 
 To compile the latter from source see 
 [riscv-gnu-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain)
+
+## build, run, debug
+- `make build` to build the kernel ELF image
+- `make text` dump dissassembled text section
+- `make qemu` to run in qemu
+- `make qemu-gdb` to run in debuggable qemu session
+- `make gdb` to debug running debuggable qemu session
 
 ## Notes
 

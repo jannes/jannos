@@ -33,6 +33,5 @@ qemu-gdb: build
 gdb:
 	$(GDB) $(KERNEL_ELF)
 
-.PHONY: text
-text:
+text: build
 	$(OBJDUMP) -d $(KERNEL_ELF)
