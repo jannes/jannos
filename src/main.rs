@@ -1,12 +1,15 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 use core::{
     arch::{asm, global_asm},
     hint::black_box,
     slice,
 };
 
+use alloc::string::String;
 use arch::hart_id;
 use fdt::Fdt;
 use mem::{align_16, KMEM, PAGE_SIZE};
@@ -62,8 +65,9 @@ pub extern "C" fn kinit(fdt_addr: usize) -> ! {
     );
 
     println!("init physical memory heap");
-    let mut kmem = KMEM.lock();
-    kmem.init(heap_start, heap_end_exclusive);
+    KMEM.init(heap_start, heap_end_exclusive);
+
+    let s = String::with_capacity(20);
 
     start_other_cores(hart_id, num_cpu, mem_end);
     panic!("kinit done, TODO: switch boot core stack and continue in kmain");

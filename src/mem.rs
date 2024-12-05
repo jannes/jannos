@@ -1,6 +1,30 @@
+use core::{alloc::GlobalAlloc, ptr};
+
 use crate::{lock::SpinLock, println};
 
-pub static KMEM: SpinLock<PhysMem> = SpinLock::new(PhysMem::new());
+#[global_allocator]
+pub static KMEM: PhysicalMemoryManager= PhysicalMemoryManager(SpinLock::new(PhysMem::new()));
+
+pub struct PhysicalMemoryManager(SpinLock<PhysMem>);
+impl PhysicalMemoryManager {
+    pub fn init(&self, start: usize, exclusive_end: usize) {
+        self.0.lock().init(start, exclusive_end);
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.0.is_locked()
+    }
+}
+
+unsafe impl GlobalAlloc for PhysicalMemoryManager {
+    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        self.0.lock().alloc_page()
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
+        todo!()
+    }
+}
 
 pub const PAGE_SIZE: usize = 4096;
 
@@ -29,11 +53,20 @@ pub struct PhysMem {
 }
 
 impl PhysMem {
-    pub const fn new() -> Self {
+    const fn new() -> Self {
         Self { freelist: None, amount_pages: 0 }
     }
 
-    pub fn init(&mut self, start: usize, exclusive_end: usize) {
+    // TODO: check whether this is actually safe
+    fn alloc_page(&mut self) -> *mut u8 {
+        let Some(head) = self.freelist else {
+            return ptr::null_mut();
+        };
+        self.freelist = unsafe { (*head).next };
+        head as *mut u8
+    }
+
+    fn init(&mut self, start: usize, exclusive_end: usize) {
         println!("PhysMem.init");
         println!("start address {:#x} ({})", start, start);
         println!("end address {:#x} ({})", exclusive_end, exclusive_end);
