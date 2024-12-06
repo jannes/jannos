@@ -18,11 +18,14 @@ impl PhysicalMemoryManager {
 
 unsafe impl GlobalAlloc for PhysicalMemoryManager {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        if layout.size() > PAGE_SIZE || layout.align() > PAGE_SIZE {
+            return ptr::null_mut()
+        }
         self.0.lock().alloc_page()
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
-        todo!()
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
+        self.0.lock().free_page(ptr);
     }
 }
 
@@ -48,7 +51,7 @@ pub fn align_16(address: usize) -> usize {
 }
 
 pub struct PhysMem {
-    freelist: Option<*mut FreePage>,
+    freelist: Option<*mut PhysPage>,
     amount_pages: usize,
 }
 
@@ -66,6 +69,15 @@ impl PhysMem {
         head as *mut u8
     }
 
+    // TODO: check whether this is actually safe
+    fn free_page(&mut self, page: *mut u8) {
+        let head = unsafe {
+          &mut *(page as *mut PhysPage)
+        };
+        head.next = self.freelist;
+        self.freelist = Some(head as *mut PhysPage);
+    }
+
     fn init(&mut self, start: usize, exclusive_end: usize) {
         println!("PhysMem.init");
         println!("start address {:#x} ({})", start, start);
@@ -81,7 +93,7 @@ impl PhysMem {
             // construct valid FreeNode, 
             // representing page starting at page_start_addr
             let page = unsafe {
-                &mut *(page_start_addr as *mut FreePage)
+                &mut *(page_start_addr as *mut PhysPage)
             };
             page.next = None;
             *current = Some(page);
@@ -93,13 +105,13 @@ impl PhysMem {
     }
 }
 
-struct FreePage {
-    next: Option<*mut FreePage>,
+struct PhysPage {
+    next: Option<*mut PhysPage>,
 }
 
 // Safety: FreeNode are only constructed for use in PhysMem,
 // which only has a single global instance protected by a lock
-unsafe impl Send for FreePage {}
-unsafe impl Sync for FreePage {}
+unsafe impl Send for PhysPage {}
+unsafe impl Sync for PhysPage {}
 unsafe impl Send for PhysMem {}
 unsafe impl Sync for PhysMem {}

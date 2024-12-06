@@ -67,7 +67,8 @@ pub extern "C" fn kinit(fdt_addr: usize) -> ! {
     println!("init physical memory heap");
     KMEM.init(heap_start, heap_end_exclusive);
 
-    let s = String::with_capacity(20);
+    let _s = String::with_capacity(20);
+    drop(_s);
 
     start_other_cores(hart_id, num_cpu, mem_end);
     panic!("kinit done, TODO: switch boot core stack and continue in kmain");

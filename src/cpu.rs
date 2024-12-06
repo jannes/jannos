@@ -41,6 +41,7 @@ impl Cpus {
     }
 
     // Safety: TODO
+    #[allow(clippy::all)]
     pub fn current(&self) -> &mut Cpu {
         unsafe { &mut *(self.0[hart_id()].get()) }
     }
