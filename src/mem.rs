@@ -3,7 +3,8 @@ use core::{alloc::GlobalAlloc, ptr};
 use crate::{lock::SpinLock, println};
 
 #[global_allocator]
-pub static KMEM: PhysicalMemoryManager = PhysicalMemoryManager(SpinLock::new(PhysMem::new()));
+pub static KMEM: PhysicalMemoryManager =
+    PhysicalMemoryManager(SpinLock::new(PhysMem::new(), "kmem"));
 
 pub struct PhysicalMemoryManager(SpinLock<PhysMem>);
 impl PhysicalMemoryManager {

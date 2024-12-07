@@ -34,7 +34,7 @@ extern "C" {
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    println!("panic: {}", info);
+    println_panic!("panic: {}", info);
     loop {
         unsafe {
             asm!("wfi");

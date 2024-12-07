@@ -1,5 +1,9 @@
 use core::{arch::asm, fmt};
 
+use crate::lock::SpinLock;
+
+pub static CONSOLE: SpinLock<SBIOut> = SpinLock::new(SBIOut {}, "console");
+
 #[repr(C)]
 pub struct SbiRet {
     error: i64,

@@ -1,34 +1,52 @@
 use core::cell::UnsafeCell;
-use core::hint;
 use core::ops::{Deref, DerefMut};
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicPtr, Ordering};
+use core::{hint, ptr};
 
-use crate::cpu::CPUS;
-use crate::println;
+use crate::arch::{disable_interrupts, intr_get};
+use crate::cpu::{Cpu, CPUS};
 
 pub struct SpinLock<T> {
-    locked: AtomicBool,
+    // name of lock for debugging purposes
+    name: &'static str,
+    // whether lock is locked and by which cpu (null if not locked)
+    locked: AtomicPtr<Cpu>,
+    // the actual value that the lock protects
     value: UnsafeCell<T>,
 }
 
 unsafe impl<T> Sync for SpinLock<T> where T: Send {}
 
 impl<T> SpinLock<T> {
-    pub const fn new(value: T) -> Self {
+    pub const fn new(value: T, name: &'static str) -> Self {
         Self {
-            locked: AtomicBool::new(false),
+            name,
+            locked: AtomicPtr::new(ptr::null_mut()),
             value: UnsafeCell::new(value),
         }
     }
 
     pub fn is_locked(&self) -> bool {
-        self.locked.load(Ordering::Relaxed)
+        self.locked.load(Ordering::Relaxed) != ptr::null_mut()
     }
 
     pub fn lock(&self) -> Guard<T> {
-        CPUS.current().push_off();
-        println!("lock val: {}", self.locked.load(Ordering::Relaxed));
-        while self.locked.swap(true, Ordering::Acquire) {
+        let int_enabled = intr_get();
+        disable_interrupts();
+        let cpu = CPUS.current();
+
+        // same CPU must not acquire same lock twice
+        if self.locked.load(Ordering::Relaxed) == cpu {
+            panic!("same CPU locked {} twice", self.name);
+        }
+
+        unsafe { (*cpu).push_off(int_enabled) };
+
+        while self
+            .locked
+            .compare_exchange(ptr::null_mut(), cpu, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
             hint::spin_loop();
         }
 
@@ -64,7 +82,7 @@ impl<T> DerefMut for Guard<'_, T> {
 
 impl<T> Drop for Guard<'_, T> {
     fn drop(&mut self) {
-        self.lock.locked.store(false, Ordering::Release);
-        CPUS.current().pop_off();
+        let cpu = self.lock.locked.swap(ptr::null_mut(), Ordering::Release);
+        unsafe { (*cpu).pop_off() };
     }
 }

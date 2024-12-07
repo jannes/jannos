@@ -3,7 +3,7 @@ use core::{
     mem::{self, MaybeUninit},
 };
 
-use crate::arch::{disable_interrupts, enable_interrupts, hart_id, intr_get};
+use crate::arch::{enable_interrupts, hart_id, intr_get};
 
 pub static CPUS: Cpus = Cpus::init();
 pub const MAX_CPUS: usize = 24;
@@ -40,9 +40,10 @@ impl Cpus {
         Cpus(array!(UnsafeCell<Cpu>; MAX_CPUS; UnsafeCell::new(Cpu::new())))
     }
 
-    // Safety: TODO
-    #[allow(clippy::all)]
-    pub fn current(&self) -> &mut Cpu {
+    // Safety:
+    // interrupts must be disabled and the mutable reference
+    // has to be dropped before enabling interrupts again
+    pub fn current(&self) -> *mut Cpu {
         unsafe { &mut *(self.0[hart_id()].get()) }
     }
 }
@@ -50,27 +51,25 @@ impl Cpus {
 #[derive(Clone, Copy)]
 pub struct Cpu {
     // levels of interrupt disable through push_off
-    pub n_off: u8,
+    pub off_depth: u8,
     // were interrupts enabled when first push_off?
-    pub ir_enabled: bool,
+    pub interrupts_enabled: bool,
 }
 
 impl Cpu {
     const fn new() -> Cpu {
         Cpu {
-            n_off: 0,
-            ir_enabled: false,
+            off_depth: 0,
+            interrupts_enabled: false,
         }
     }
 
     /// Disable interrupts and keep track of disable nesting
-    pub fn push_off(&mut self) {
-        let int_enabled = intr_get();
-        disable_interrupts();
-        if self.n_off == 0 {
-            self.ir_enabled = int_enabled;
+    pub fn push_off(&mut self, int_enabled: bool) {
+        if self.off_depth == 0 {
+            self.interrupts_enabled = int_enabled;
         }
-        self.n_off += 1;
+        self.off_depth += 1;
     }
 
     /// Pop interrupt disable, enable interrupts if no disable remains
@@ -78,11 +77,11 @@ impl Cpu {
         if intr_get() {
             panic!("interrupts enabled when calling pop_off");
         }
-        if self.n_off < 1 {
+        if self.off_depth < 1 {
             panic!("n_off non-positive when calling pop_off");
         }
-        self.n_off -= 1;
-        if self.n_off == 0 && self.ir_enabled {
+        self.off_depth -= 1;
+        if self.off_depth == 0 && self.interrupts_enabled {
             enable_interrupts();
         }
     }

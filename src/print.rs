@@ -1,15 +1,17 @@
 use core::fmt::{self, Write};
 
-use crate::sbi::{self};
+use crate::sbi::{sbi_out, CONSOLE};
 
-// The following deadlocks right away on start up, why?
-// static CONSOLE: SpinLock<()> = SpinLock::new(());
-// TODO: do proper locking of SBIOut
-
+// Normal printing to console with mutual exclusion
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
-    // let _console = CONSOLE.lock();
-    sbi::sbi_out().write_fmt(args).unwrap();
+    CONSOLE.lock().write_fmt(args).unwrap();
+}
+
+// Printing to console without mutual exclusion for panics
+#[doc(hidden)]
+pub fn _print_panic(args: fmt::Arguments) {
+    sbi_out().write_fmt(args).unwrap();
 }
 
 // Macros copied from octox
@@ -23,5 +25,12 @@ macro_rules! print {
 macro_rules! println {
     ($fmt:literal$(, $($arg: tt)+)?) => {
         $crate::print::_print(format_args!(concat!($fmt, "\n") $(,$($arg)+)?))
+    };
+}
+
+#[macro_export]
+macro_rules! println_panic {
+    ($fmt:literal$(, $($arg: tt)+)?) => {
+        $crate::print::_print_panic(format_args!(concat!($fmt, "\n") $(,$($arg)+)?))
     };
 }
