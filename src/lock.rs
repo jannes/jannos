@@ -33,14 +33,16 @@ impl<T> SpinLock<T> {
     pub fn lock(&self) -> Guard<T> {
         let int_enabled = intr_get();
         disable_interrupts();
-        let cpu = CPUS.current();
+        let cpu = unsafe {
+            let cpu = CPUS.current();
+            (*cpu).push_off(int_enabled);
+            cpu
+        };
 
         // same CPU must not acquire same lock twice
         if self.locked.load(Ordering::Relaxed) == cpu {
             panic!("same CPU locked {} twice", self.name);
         }
-
-        unsafe { (*cpu).push_off(int_enabled) };
 
         while self
             .locked

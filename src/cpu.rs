@@ -43,8 +43,8 @@ impl Cpus {
     // Safety:
     // interrupts must be disabled and the mutable reference
     // has to be dropped before enabling interrupts again
-    pub fn current(&self) -> *mut Cpu {
-        unsafe { &mut *(self.0[hart_id()].get()) }
+    pub unsafe fn current(&self) -> *mut Cpu {
+        &mut *(self.0[hart_id()].get())
     }
 }
 
@@ -64,7 +64,7 @@ impl Cpu {
         }
     }
 
-    /// Disable interrupts and keep track of disable nesting
+    /// Keep track of interrupt disable nesting
     pub fn push_off(&mut self, int_enabled: bool) {
         if self.off_depth == 0 {
             self.interrupts_enabled = int_enabled;
