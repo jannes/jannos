@@ -21,6 +21,7 @@ mod lock;
 mod mem;
 mod print;
 mod sbi;
+mod vm;
 
 global_asm!(include_str!("boot.s"));
 
